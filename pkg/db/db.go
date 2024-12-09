@@ -1,25 +1,66 @@
 package db
 
 import (
-	"database/sql"
+	"context"
+	"fmt"
 	"log"
 
-	_ "github.com/lib/pq"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func Connect() *sql.DB {
-	dsn := "user=postgres password=q123 dbname=itsware sslmode=disable"
+var Pool *pgxpool.Pool
 
-	db, err := sql.Open("postgres", dsn)
+func InitDB() {
+	var err error
+	connectionString := "host=database user=postgres password=q123 dbname=itsware sslmode=disable"
+	Pool, err = pgxpool.New(context.Background(), connectionString)
 	if err != nil {
-		log.Fatal("Failed to connect to the database:", err)
+		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 
-	if err := db.Ping(); err != nil {
-		log.Fatal("Failed to ping the database:", err)
+	err = Pool.Ping(context.Background())
+	if err != nil {
+		log.Fatalln("b5", err)
 	}
 
-	log.Println("Database connected successfully")
+	err = runMigrations(Pool)
+	if err != nil {
+		log.Fatalf("Failed to run migrations: %v\n", err)
+	}
+}
 
-	return db
+func runMigrations(pool *pgxpool.Pool) error {
+	db := stdlib.OpenDBFromPool(pool)
+
+	err := db.Ping()
+	if err != nil {
+		panic(fmt.Errorf("b:%v", err))
+	}
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("1: %v\n", err)
+	}
+
+	migrationsPath := fmt.Sprintf("file:%s", "./migrations") //export MIGRATIONS_DIR="E:/path/to/migrationDir"
+	m, err := migrate.NewWithDatabaseInstance(
+		migrationsPath,
+		"itsware",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("2: %v\n", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("3: %v\n", err)
+	}
+
+	log.Println("Migrations applied successfully!")
+	return nil
 }

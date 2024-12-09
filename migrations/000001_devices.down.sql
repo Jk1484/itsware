@@ -1,0 +1,5 @@
+DROP FUNCTION IF EXISTS create_device;
+
+DROP TABLE IF EXISTS devices;
+
+DROP TYPE IF EXISTS device;

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"itsware/internal/controllers"
+	"itsware/internal/models"
 	"itsware/internal/repositories"
 	"itsware/internal/services"
 	"itsware/pkg/db"
@@ -9,7 +12,15 @@ import (
 )
 
 func main() {
-	database := db.Connect()
+	db.InitDB()
+
+	resp, err := repositories.CreateCabinet(context.Background(), models.Cabinet{Name: "test", Location: "test"})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("cabinet:", resp)
+
+	database := db.Pool
 	repo := &repositories.Device{DB: database}
 	service := &services.Device{Repository: repo}
 	controllers := &controllers.Device{Service: service}

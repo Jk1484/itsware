@@ -1,0 +1,5 @@
+DROP FUNCTION IF EXISTS create_cabinet;
+
+DROP TABLE IF EXISTS cabinets;
+
+DROP TYPE IF EXISTS cabinet;
